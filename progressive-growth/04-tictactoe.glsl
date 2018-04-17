@@ -12,23 +12,54 @@ precision mediump float;
 // X | O | O
 // (with a line through the right-side O's)
 
+// We'll do this by creating a 3x3 grid of squares
+// with local coordinates (0., 0.) to (1., 1.) (bottom-left to top-right)
+
+// We'll draw the squares' borders, then draw the shapes in each square, then
+// the line connecting the winner.
+
+// Let's start with some reusable functions for shapes
 float circle(in vec2 st){
-	float o = 0.;
+	// Circles are just measurements of distance from their center -
+	// if we're below a certain distance, we'll color it in, otherwise we'll
+	// ignore the pixel.
+
+	// Let's save that distance (remember, each square's local coordinates will
+	// go from (0., 0.) to (1., 1.), so the center is (0.5, 0.5))
 	float d = distance(st, vec2(0.5));
 
-	o += 	smoothstep(0.25, 0.26, d) -
-			smoothstep(0.4, 0.41, d);
+	// Let's also save the stroke of the circle...
+	float stroke = 0.15;
+	// ...and its "inner radius" (ie, the empty section from the center to where
+	// the stroke begins)
+	float innerRadius = 0.25;
 
-	return o;
+	// One easy way to draw a line in GLSL is to do this:
+	// smoothstep(strokeBirth, strokeFull, coordinates) - smoothstep(strokeDecline, strokeDone, coordinates)
+	// where strokeBirth is the very first pixel that's drawn and strokeFull is the
+	// point at which the stroke is at its full strength. strokeDecline is where the
+	// full strength of a stroke starts to decrease, and strokeDone is the last pixel that the shape takes up.
+	// This creates a line that smoothly builds itself on the edges - no jagged pixels!
+
+	// Let's use that formula here to create a circle with our desired stroke.
+	// The + 0.01 on both ends just lets us build a gentle increase - remember, we're smoothstepping,
+	// so we need two values to serve as our bounds.
+	return 	smoothstep(innerRadius, innerRadius + 0.01, d) -
+			smoothstep(innerRadius + stroke, innerRadius + stroke + 0.01, d);
 }
 
+// This is magic. I don't get it yet. We'll come back to it some day.
 mat2 rotate2d(float angle){
 	return mat2(cos(angle), -sin(angle),
 				sin(angle), cos(angle));
 }
 
+// And now the X, which I'm calling "cross"!
 float cross(in vec2 st){
 
+	// The first thing we're going to do is rotate our coordinate system by 45 degrees.
+	// We want the cross to be centered on (0.5, 0.5), so we'll translate our coordinates
+	// down/left by that much, rotate the system, and translate them back (https://thebookofshaders.com/08/)
 	st -= 0.5;
 	st = rotate2d(PI / 4.) * st;
 	st += 0.5;
