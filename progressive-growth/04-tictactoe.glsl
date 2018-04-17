@@ -49,10 +49,19 @@ float circle(in vec2 st){
 }
 
 // This is magic. I don't get it yet. We'll come back to it some day.
-mat2 rotate2d(float angle){
-	return mat2(cos(angle), -sin(angle),
-				sin(angle), cos(angle));
+vec2 rotate2d(in vec2 uv, in float angle, in vec2 origin){
+    uv -= origin;
+    uv *= mat2( cos(angle), -sin(angle),
+                sin(angle), cos(angle));
+    uv += origin;
+    return uv;
 }
+
+// An overload of the above magic that defaults to a (0.5, 0.5) transform origin
+vec2 rotate2d(in vec2 uv, in float angle){
+    return rotate2d(uv, angle, vec2(0.5));
+}
+
 
 // And now the X, which I'm calling "cross"!
 float cross(in vec2 st){
@@ -60,10 +69,16 @@ float cross(in vec2 st){
 	// The first thing we're going to do is rotate our coordinate system by 45 degrees.
 	// We want the cross to be centered on (0.5, 0.5), so we'll translate our coordinates
 	// down/left by that much, rotate the system, and translate them back (https://thebookofshaders.com/08/)
-	st -= 0.5;
-	st = rotate2d(PI / 4.) * st;
-	st += 0.5;
+	st = rotate2d(st, 40.);
 
+	// We're going to create crosses by doing the following:
+	// 	1. Place two rectangles on top of each other and keep the points where they overlap,
+	//		in order to create the vertical line
+	//	2. Repeat step 1 to create the horizontal line
+	//	3. Add the results together
+
+	// Multiplying two smoothstepped values is basically the equivalent of an AND operator -
+	// 0 * 0 = 1 * 0 = 0 * 1, so unless both rectangles have a pixel at this point, we'll get 0
 	vec2 vrt = smoothstep(vec2(0.4, 0.2), vec2(0.41, 0.21), st) *
 			(1. - smoothstep(vec2(0.6, 0.8), vec2(0.61, 0.81), st));
 
